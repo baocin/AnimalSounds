@@ -16,7 +16,7 @@
         android:weightSum="1">
 
         <TextView
-            android:layout_width="351dp"
+            android:layout_width="fill_parent"
             android:layout_height="50dp"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:id="@+id/questionText"
@@ -32,7 +32,7 @@
             android:allowUndo="false" />
 
         <ImageView
-            android:layout_width="356dp"
+            android:layout_width="fill_parent"
             android:layout_height="160dp"
             android:id="@+id/leftImage"
             android:layout_row="0"
@@ -44,7 +44,7 @@
             android:layout_gravity="center" />
 
         <TextView
-            android:layout_width="351dp"
+            android:layout_width="fill_parent"
             android:layout_height="41dp"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:id="@+id/leftText"
@@ -57,7 +57,7 @@
             android:layout_marginBottom="20dp" />
 
         <ImageView
-            android:layout_width="356dp"
+            android:layout_width="fill_parent"
             android:layout_height="160dp"
             android:id="@+id/rightImage"
             android:layout_row="0"
@@ -70,7 +70,7 @@
             android:layout_gravity="center" />
 
         <TextView
-            android:layout_width="351dp"
+            android:layout_width="fill_parent"
             android:layout_height="41dp"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:id="@+id/rightText"

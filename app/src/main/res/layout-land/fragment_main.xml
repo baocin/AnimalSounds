@@ -19,7 +19,7 @@
         android:useDefaultMargins="false">
 
         <TextView
-            android:layout_width="283dp"
+            android:layout_width="279dp"
             android:layout_height="41dp"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:id="@+id/rightText"
@@ -28,11 +28,12 @@
             android:textAlignment="center"
             android:layout_alignParentBottom="true"
             android:layout_alignLeft="@+id/rightImage"
-            android:layout_alignStart="@+id/rightImage" />
+            android:layout_alignStart="@+id/rightImage"
+            android:layout_gravity="center" />
 
         <ImageView
-            android:layout_width="226dp"
-            android:layout_height="wrap_content"
+            android:layout_width="250dp"
+            android:layout_height="190dp"
             android:id="@+id/leftImage"
             android:layout_row="1"
             android:layout_column="0"
@@ -42,7 +43,8 @@
             android:layout_alignRight="@+id/leftText"
             android:layout_alignEnd="@+id/leftText"
             android:textAlignment="center"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:padding="5dp" />
 
         <TextView
             android:layout_width="match_parent"
@@ -54,11 +56,12 @@
             android:layout_centerHorizontal="true"
             android:layout_column="0"
             android:layout_row="0"
-            android:layout_columnSpan="2" />
+            android:layout_columnSpan="2"
+            android:layout_gravity="center" />
 
         <ImageView
-            android:layout_width="225dp"
-            android:layout_height="wrap_content"
+            android:layout_width="250dp"
+            android:layout_height="190dp"
             android:id="@+id/rightImage"
             android:layout_row="1"
             android:src="@drawable/frog_photo"
@@ -67,10 +70,11 @@
             android:layout_alignParentEnd="true"
             android:layout_column="1"
             android:textAlignment="center"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:padding="5dp" />
 
         <TextView
-            android:layout_width="276dp"
+            android:layout_width="279dp"
             android:layout_height="41dp"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:id="@+id/leftText"
@@ -79,7 +83,8 @@
             android:layout_alignParentBottom="true"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true"
-            android:layout_column="0" />
+            android:layout_column="0"
+            android:layout_gravity="center" />
     </GridLayout>
 
 </RelativeLayout>
