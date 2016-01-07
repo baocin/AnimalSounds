@@ -1,13 +1,18 @@
 package com.github.baocin.animalsounds;
 
+import android.animation.AnimatorInflater;
+import android.animation.AnimatorSet;
 import android.graphics.Color;
 import android.media.MediaPlayer;
+import android.speech.tts.TextToSpeech;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,6 +20,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Random;
 
 /**
@@ -24,14 +30,17 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
     private static final String TAG = "MainActivityFragment";
     private static final int LEFT_ANIMAL_ID = 0;
     private static final int RIGHT_ANIMAL_ID = 1;
+    private TextToSpeech ttobj;
     public HashMap<String, Integer> animalImages = new HashMap<>();
     public HashMap<String, Integer> animalAudio = new HashMap<>();
     private static MediaPlayer mp = new MediaPlayer();
-
     public int correctAnimalID = 0;
     public ArrayList<String> pickedAnimals = new ArrayList<>();
+    private int rightClickCount = 0;
+    private int leftClickCount = 0;
 
     public MainActivityFragment() {
+        //Data!
         animalImages.put("cat", R.drawable.cat_photo);
         animalImages.put("cow", R.drawable.cow_photo);
         animalImages.put("donkey", R.drawable.donkey_photo);
@@ -54,63 +63,93 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_main, container, false);
 
+        ttobj=new TextToSpeech(this.getContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                ttobj.setLanguage(Locale.US);
+
+            }
+        }
+        );
+
         setupAnimals(v);
 
         return v;
     }
+
     public void resetAnimals(View v){
+        leftClickCount = 0;
+        rightClickCount = 0;
+
         //Stop audio (if playing)
         mp.stop();
 
-        //Clear background colors
+        //Stop text to speach
+        ttobj.stop();
+
+        //get layout elements
         ImageView leftAnimal = (ImageView) v.findViewById(R.id.leftImage);
         ImageView rightAnimal = (ImageView) v.findViewById(R.id.rightImage);
-
-        leftAnimal.setBackgroundColor(Color.TRANSPARENT);
-        rightAnimal.setBackgroundColor(Color.TRANSPARENT);
-
         TextView leftText = (TextView) v.findViewById(R.id.leftText);
         TextView rightText = (TextView) v.findViewById(R.id.rightText);
 
-        leftText.setVisibility(View.INVISIBLE);
-        rightText.setVisibility(View.INVISIBLE);
+        //Clear background colors
+        leftAnimal.setBackgroundColor(Color.TRANSPARENT);
+        rightAnimal.setBackgroundColor(Color.TRANSPARENT);
 
+
+        //force animal name text to visible
+        leftText.setVisibility(View.VISIBLE);
+        rightText.setVisibility(View.VISIBLE);
+
+        //Set animal text and image backgrounds to transparent(nothing)
         leftText.setBackgroundColor(Color.TRANSPARENT);
         rightText.setBackgroundColor(Color.TRANSPARENT);
+        leftAnimal.setBackgroundColor(Color.TRANSPARENT);
+        rightAnimal.setBackgroundColor(Color.TRANSPARENT);
 
+        //all animal names are lowercase by default
         leftText.setAllCaps(false);
         rightText.setAllCaps(false);
     }
 
     public void setupAnimals(View v){
+        //reset to sane defaults
         resetAnimals(v);
 
+        //Get layout elements - images and text views
         ImageView leftAnimal = (ImageView) v.findViewById(R.id.leftImage);
         ImageView rightAnimal = (ImageView) v.findViewById(R.id.rightImage);
-        leftAnimal.setOnClickListener(this);
-        rightAnimal.setOnClickListener(this);
-
-        pickedAnimals = pickNItems(animalImages.keySet(), 2);
-        leftAnimal.setImageResource(animalImages.get(pickedAnimals.get(LEFT_ANIMAL_ID)));
-        rightAnimal.setImageResource(animalImages.get(pickedAnimals.get(RIGHT_ANIMAL_ID)));
-
         TextView leftText = (TextView) v.findViewById(R.id.leftText);
         TextView rightText = (TextView) v.findViewById(R.id.rightText);
-        leftText.setText(pickedAnimals.get(LEFT_ANIMAL_ID));
-        rightText.setText(pickedAnimals.get(RIGHT_ANIMAL_ID));
-
-
-
         TextView questionText = (TextView) v.findViewById(R.id.questionText);
-//        questionText.setText("Choose between the " + pickedAnimals.get(LEFT_ANIMAL_ID) + " and the " + pickedAnimals.get(RIGHT_ANIMAL_ID));
-        questionText.setText("Choose the animal that makes this sound!");
+
+        //randomize next images
+        pickedAnimals = pickNItems(animalImages.keySet(), 2);
 
         //pick the correct answer
         correctAnimalID = randomRange(LEFT_ANIMAL_ID, RIGHT_ANIMAL_ID); //pick either 0 and 1
 
-        //Play the correct animal sound
-        mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(correctAnimalID)));
-        mp.start();
+        //Set on click handlers for both images
+        leftAnimal.setOnClickListener(this);
+        rightAnimal.setOnClickListener(this);
+
+        //set animal images
+        leftAnimal.setImageResource(animalImages.get(pickedAnimals.get(LEFT_ANIMAL_ID)));
+        rightAnimal.setImageResource(animalImages.get(pickedAnimals.get(RIGHT_ANIMAL_ID)));
+
+        //set animal name text
+        leftText.setText(pickedAnimals.get(LEFT_ANIMAL_ID));
+        rightText.setText(pickedAnimals.get(RIGHT_ANIMAL_ID));
+
+        questionText.setText("Tap the image of a " + pickedAnimals.get(correctAnimalID) + ".");
+
+        //Stop audio!
+        mp.stop();
+
+        //Say the question
+        ttobj.speak(questionText.getText().toString(), TextToSpeech.QUEUE_FLUSH, null);
+
     }
 
     public void onClick(View v) {
@@ -119,13 +158,18 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
         ImageView leftAnimal = (ImageView) getActivity().findViewById(R.id.leftImage);
         ImageView rightAnimal = (ImageView) getActivity().findViewById(R.id.rightImage);
 
-        //Bold the correct animal name
+        //Stop audio!
+        mp.stop();
+
+        //Set the correct animal text view to all caps, and color the animal image backgrounds
         if (correctAnimalID == LEFT_ANIMAL_ID){
             leftText.setAllCaps(true);
             leftAnimal.setBackgroundColor(getResources().getColor(R.color.green));
             leftText.setBackgroundColor(getResources().getColor(R.color.green));
             rightAnimal.setBackgroundColor(getResources().getColor(R.color.red));
             rightText.setBackgroundColor(getResources().getColor(R.color.red));
+//            leftAnimal.setBackgroundResource(R.drawable.green_circle);
+//            rightAnimal.setBackgroundResource(R.drawable.red_circle);
         }else {
             rightText.setAllCaps(true);
             leftAnimal.setBackgroundColor(getResources().getColor(R.color.red));
@@ -135,26 +179,61 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
         }
 
         if (v.getId() == R.id.leftImage){
+            leftClickCount++;
+
+            //Some Animation!
+//            Animation imageShakeAnim = (Animation) AnimationUtils.loadAnimation(getContext(), R.anim.image_shake);
+//            leftAnimal.startAnimation(imageShakeAnim);
+
             if (correctAnimalID == LEFT_ANIMAL_ID){
                 //CORRECT
                 Toast.makeText(v.getContext(), pickedAnimals.get(LEFT_ANIMAL_ID) + " is CORRECT!", Toast.LENGTH_SHORT).show();
-                setupAnimals(getView());
             }else {
                 Toast.makeText(v.getContext(), pickedAnimals.get(LEFT_ANIMAL_ID) + " is incorrect, TRY AGAIN?", Toast.LENGTH_SHORT).show();
             }
-            leftText.setVisibility(View.VISIBLE);
-            rightText.setVisibility(View.VISIBLE);
+//            leftText.setVisibility(View.VISIBLE);
+//            rightText.setVisibility(View.VISIBLE);
+            mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(LEFT_ANIMAL_ID)));
+            mp.start();
         }
+
         if (v.getId() == R.id.rightImage){
+            rightClickCount++;
+
+            //Some Animation!
+//            imageShakeAnim.setTarget(R.id.rightImage);
+//            imageShakeAnim.start();
+
             if (correctAnimalID == RIGHT_ANIMAL_ID){
                 //CORRECT
                 Toast.makeText(v.getContext(), pickedAnimals.get(RIGHT_ANIMAL_ID) + " is CORRECT!", Toast.LENGTH_SHORT).show();
-                setupAnimals(getView());
             }else {
                 Toast.makeText(v.getContext(), pickedAnimals.get(RIGHT_ANIMAL_ID) + " is incorrect, TRY AGAIN?", Toast.LENGTH_SHORT).show();
             }
-            leftText.setVisibility(View.VISIBLE);
-            rightText.setVisibility(View.VISIBLE);
+//            leftText.setVisibility(View.VISIBLE);
+//            rightText.setVisibility(View.VISIBLE);
+            mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(RIGHT_ANIMAL_ID)));
+            mp.start();
+        }
+
+        if ((leftClickCount + rightClickCount) > 2){
+            Toast.makeText(v.getContext(), "Click Count: " + leftClickCount + "/" + rightClickCount, Toast.LENGTH_SHORT).show();
+
+            //Play the correct animal sound
+//            mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(correctAnimalID)));
+//            mp.start();
+
+            Log.d(TAG, "Milliseconds left: " + (mp.getDuration() - mp.getCurrentPosition()));
+            //Wait until audio is finished
+            try {
+                Log.d(TAG, "Sleeping for a second, generating next question.");
+                Thread.sleep((mp.getDuration() - mp.getCurrentPosition()));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            //Generate new question
+            setupAnimals(getView());
         }
     }
 
@@ -183,6 +262,15 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
     }
 
 
-
+    @Override
+    public void onDestroy() {
+        //Close the Text to Speech Library
+        if(ttobj != null) {
+            ttobj.stop();
+            ttobj.shutdown();
+            Log.d(TAG, "Text to Speach Destroyed");
+        }
+        super.onDestroy();
+    }
 
 }

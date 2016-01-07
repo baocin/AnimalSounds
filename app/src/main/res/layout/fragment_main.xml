@@ -13,7 +13,7 @@
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:weightSum="1">
+        android:weightSum="0">
 
         <TextView
             android:layout_width="fill_parent"
@@ -27,7 +27,7 @@
             android:layout_centerHorizontal="true"
             android:autoText="false"
             android:singleLine="false"
-            android:layout_weight="0.60"
+            android:layout_weight="1"
             android:textIsSelectable="false"
             android:allowUndo="false" />
 
@@ -41,7 +41,8 @@
             android:layout_above="@+id/leftText"
             android:layout_alignParentRight="true"
             android:layout_alignParentEnd="false"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:layout_weight="2" />
 
         <TextView
             android:layout_width="fill_parent"
@@ -54,7 +55,8 @@
             android:layout_centerVertical="true"
             android:layout_alignParentRight="true"
             android:layout_alignParentEnd="true"
-            android:layout_marginBottom="20dp" />
+            android:layout_marginBottom="20dp"
+            android:layout_weight="1" />
 
         <ImageView
             android:layout_width="fill_parent"
@@ -67,7 +69,8 @@
             android:layout_alignParentStart="false"
             android:layout_below="@+id/leftText"
             android:layout_above="@+id/rightText"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:layout_weight="2" />
 
         <TextView
             android:layout_width="fill_parent"
@@ -79,7 +82,8 @@
             android:textAlignment="center"
             android:layout_alignParentBottom="true"
             android:layout_alignRight="@+id/rightImage"
-            android:layout_alignEnd="@+id/rightImage" />
+            android:layout_alignEnd="@+id/rightImage"
+            android:layout_weight="1" />
 
     </LinearLayout>
 </RelativeLayout>
