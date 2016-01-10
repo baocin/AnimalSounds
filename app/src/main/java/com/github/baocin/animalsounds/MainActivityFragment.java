@@ -2,6 +2,7 @@ package com.github.baocin.animalsounds;
 
 import android.animation.AnimatorInflater;
 import android.animation.AnimatorSet;
+import android.content.Intent;
 import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.speech.tts.TextToSpeech;
@@ -11,8 +12,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -48,6 +47,7 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
         animalImages.put("horse", R.drawable.horse_photo);
         animalImages.put("pig", R.drawable.pig_photo);
         animalImages.put("sheep", R.drawable.sheep_photo);
+        animalImages.put("fox", R.drawable.fox_photo);
 
         animalAudio.put("cat", R.raw.cat);
         animalAudio.put("cow", R.raw.cow);
@@ -56,6 +56,7 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
         animalAudio.put("horse", R.raw.horse);
         animalAudio.put("pig", R.raw.pig);
         animalAudio.put("sheep", R.raw.sheep);
+        animalAudio.put("fox", R.raw.fox);
     }
 
     @Override
@@ -71,7 +72,6 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
             }
         }
         );
-
         setupAnimals(v);
 
         return v;
@@ -162,20 +162,34 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
         mp.stop();
 
         //Set the correct animal text view to all caps, and color the animal image backgrounds
+        if ((correctAnimalID == LEFT_ANIMAL_ID && v.getId() == R.id.leftImage) || (correctAnimalID == RIGHT_ANIMAL_ID && v.getId() == R.id.rightImage)){
+            ttobj.speak("Correct!", TextToSpeech.QUEUE_FLUSH, null);
+            mp = MediaPlayer.create(this.getActivity(), R.raw.silence);
+            mp.start();
+            mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    Log.d(TAG, "Played 'correct'");
+                    //Generate new question
+                    setupAnimals(getView());
+                }
+            });
+            mp.stop();
+        }
+
+        Log.d(TAG, "Testing: " + correctAnimalID + " vs " + LEFT_ANIMAL_ID + " or " + RIGHT_ANIMAL_ID + " " + v.getId());
         if (correctAnimalID == LEFT_ANIMAL_ID){
             leftText.setAllCaps(true);
-            leftAnimal.setBackgroundColor(getResources().getColor(R.color.green));
-            leftText.setBackgroundColor(getResources().getColor(R.color.green));
-            rightAnimal.setBackgroundColor(getResources().getColor(R.color.red));
-            rightText.setBackgroundColor(getResources().getColor(R.color.red));
-//            leftAnimal.setBackgroundResource(R.drawable.green_circle);
-//            rightAnimal.setBackgroundResource(R.drawable.red_circle);
+//            leftAnimal.setBackgroundColor(getResources().getColor(R.color.green));
+//            leftText.setBackgroundColor(getResources().getColor(R.color.green));
+//            rightAnimal.setBackgroundColor(getResources().getColor(R.color.red));
+//            rightText.setBackgroundColor(getResources().getColor(R.color.red));
         }else {
             rightText.setAllCaps(true);
-            leftAnimal.setBackgroundColor(getResources().getColor(R.color.red));
-            leftText.setBackgroundColor(getResources().getColor(R.color.red));
-            rightAnimal.setBackgroundColor(getResources().getColor(R.color.green));
-            rightText.setBackgroundColor(getResources().getColor(R.color.green));
+//            leftAnimal.setBackgroundColor(getResources().getColor(R.color.red));
+//            leftText.setBackgroundColor(getResources().getColor(R.color.red));
+//            rightAnimal.setBackgroundColor(getResources().getColor(R.color.green));
+//            rightText.setBackgroundColor(getResources().getColor(R.color.green));
         }
 
         if (v.getId() == R.id.leftImage){
@@ -185,16 +199,25 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
 //            Animation imageShakeAnim = (Animation) AnimationUtils.loadAnimation(getContext(), R.anim.image_shake);
 //            leftAnimal.startAnimation(imageShakeAnim);
 
-            if (correctAnimalID == LEFT_ANIMAL_ID){
-                //CORRECT
-                Toast.makeText(v.getContext(), pickedAnimals.get(LEFT_ANIMAL_ID) + " is CORRECT!", Toast.LENGTH_SHORT).show();
-            }else {
-                Toast.makeText(v.getContext(), pickedAnimals.get(LEFT_ANIMAL_ID) + " is incorrect, TRY AGAIN?", Toast.LENGTH_SHORT).show();
-            }
+//            if (correctAnimalID == LEFT_ANIMAL_ID){
+//                //CORRECT
+//                Toast.makeText(v.getContext(), pickedAnimals.get(LEFT_ANIMAL_ID) + " is CORRECT!", Toast.LENGTH_SHORT).show();
+//            }else {
+//                Toast.makeText(v.getContext(), pickedAnimals.get(LEFT_ANIMAL_ID) + " is incorrect, TRY AGAIN?", Toast.LENGTH_SHORT).show();
+//            }
 //            leftText.setVisibility(View.VISIBLE);
 //            rightText.setVisibility(View.VISIBLE);
             mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(LEFT_ANIMAL_ID)));
             mp.start();
+            mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    Log.d(TAG, "Completed 1");
+                    //Generate new question
+                    setupAnimals(getView());
+                }
+            });
+
         }
 
         if (v.getId() == R.id.rightImage){
@@ -204,36 +227,35 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
 //            imageShakeAnim.setTarget(R.id.rightImage);
 //            imageShakeAnim.start();
 
-            if (correctAnimalID == RIGHT_ANIMAL_ID){
-                //CORRECT
-                Toast.makeText(v.getContext(), pickedAnimals.get(RIGHT_ANIMAL_ID) + " is CORRECT!", Toast.LENGTH_SHORT).show();
-            }else {
-                Toast.makeText(v.getContext(), pickedAnimals.get(RIGHT_ANIMAL_ID) + " is incorrect, TRY AGAIN?", Toast.LENGTH_SHORT).show();
-            }
+//            if (correctAnimalID == RIGHT_ANIMAL_ID){
+//                //CORRECT
+//                Toast.makeText(v.getContext(), pickedAnimals.get(RIGHT_ANIMAL_ID) + " is CORRECT!", Toast.LENGTH_SHORT).show();
+//            }else {
+//                Toast.makeText(v.getContext(), pickedAnimals.get(RIGHT_ANIMAL_ID) + " is incorrect, TRY AGAIN?", Toast.LENGTH_SHORT).show();
+//            }
 //            leftText.setVisibility(View.VISIBLE);
 //            rightText.setVisibility(View.VISIBLE);
             mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(RIGHT_ANIMAL_ID)));
             mp.start();
+            mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    Log.d(TAG, "Completed 2");
+                    //Generate new question
+                    setupAnimals(getView());
+                }
+            });
         }
 
-        if ((leftClickCount + rightClickCount) > 2){
-            Toast.makeText(v.getContext(), "Click Count: " + leftClickCount + "/" + rightClickCount, Toast.LENGTH_SHORT).show();
+        if ((leftClickCount + rightClickCount) >= 1){
+//            Toast.makeText(v.getContext(), "Click Count: " + leftClickCount + "/" + rightClickCount, Toast.LENGTH_SHORT).show();
 
             //Play the correct animal sound
 //            mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(correctAnimalID)));
 //            mp.start();
 
-            Log.d(TAG, "Milliseconds left: " + (mp.getDuration() - mp.getCurrentPosition()));
-            //Wait until audio is finished
-            try {
-                Log.d(TAG, "Sleeping for a second, generating next question.");
-                Thread.sleep((mp.getDuration() - mp.getCurrentPosition()));
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
 
-            //Generate new question
-            setupAnimals(getView());
+
         }
     }
 
