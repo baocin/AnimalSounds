@@ -1,10 +1,10 @@
 package com.github.baocin.animalsounds;
 
-import android.animation.AnimatorInflater;
-import android.animation.AnimatorSet;
-import android.content.Intent;
 import android.graphics.Color;
 import android.media.MediaPlayer;
+import android.os.Handler;
+import android.os.Message;
+import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -29,14 +29,12 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
     private static final String TAG = "MainActivityFragment";
     private static final int LEFT_ANIMAL_ID = 0;
     private static final int RIGHT_ANIMAL_ID = 1;
-    private TextToSpeech ttobj;
     public HashMap<String, Integer> animalImages = new HashMap<>();
-    public HashMap<String, Integer> animalAudio = new HashMap<>();
-    private static MediaPlayer mp = new MediaPlayer();
+    private AudioThread audioThread;
+    private Handler mainHandler;
     public int correctAnimalID = 0;
     public ArrayList<String> pickedAnimals = new ArrayList<>();
-    private int rightClickCount = 0;
-    private int leftClickCount = 0;
+    public static final int MUSIC_DONE = 1;
 
     public MainActivityFragment() {
         //Data!
@@ -48,15 +46,12 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
         animalImages.put("pig", R.drawable.pig_photo);
         animalImages.put("sheep", R.drawable.sheep_photo);
         animalImages.put("fox", R.drawable.fox_photo);
+    }
 
-        animalAudio.put("cat", R.raw.cat);
-        animalAudio.put("cow", R.raw.cow);
-        animalAudio.put("donkey", R.raw.donkey);
-        animalAudio.put("frog", R.raw.frog);
-        animalAudio.put("horse", R.raw.horse);
-        animalAudio.put("pig", R.raw.pig);
-        animalAudio.put("sheep", R.raw.sheep);
-        animalAudio.put("fox", R.raw.fox);
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
     }
 
     @Override
@@ -64,28 +59,32 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_main, container, false);
 
-        ttobj=new TextToSpeech(this.getContext(), new TextToSpeech.OnInitListener() {
+        mainHandler = new Handler(new Handler.Callback() {
             @Override
-            public void onInit(int status) {
-                ttobj.setLanguage(Locale.US);
-
+            public boolean handleMessage(Message msg) {
+                switch(msg.what){
+                    case MUSIC_DONE:
+                        Log.d(TAG, "music done");
+                        //Generate new question
+                        setupAnimals(getView());
+                        break;
+                }
+                return false;
             }
-        }
-        );
+        });
+
+        //Start the background audio thread  (to prevent blocking ui)
+        audioThread = new AudioThread(getContext(), mainHandler);
+        audioThread.start();
+
+
+
         setupAnimals(v);
 
         return v;
     }
 
     public void resetAnimals(View v){
-        leftClickCount = 0;
-        rightClickCount = 0;
-
-        //Stop audio (if playing)
-        mp.stop();
-
-        //Stop text to speach
-        ttobj.stop();
 
         //get layout elements
         ImageView leftAnimal = (ImageView) v.findViewById(R.id.leftImage);
@@ -126,6 +125,7 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
 
         //randomize next images
         pickedAnimals = pickNItems(animalImages.keySet(), 2);
+        Log.d(TAG, "Picked " + pickedAnimals);
 
         //pick the correct answer
         correctAnimalID = randomRange(LEFT_ANIMAL_ID, RIGHT_ANIMAL_ID); //pick either 0 and 1
@@ -144,11 +144,8 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
 
         questionText.setText("Tap the image of a " + pickedAnimals.get(correctAnimalID) + ".");
 
-        //Stop audio!
-        mp.stop();
-
-        //Say the question
-        ttobj.speak(questionText.getText().toString(), TextToSpeech.QUEUE_FLUSH, null);
+        //Ask the question
+        sendMessage(AudioThread.SPEAK_STATUS, "Tap the image of a " + pickedAnimals.get(correctAnimalID) + ".");
 
     }
 
@@ -159,103 +156,42 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
         ImageView rightAnimal = (ImageView) getActivity().findViewById(R.id.rightImage);
 
         //Stop audio!
-        mp.stop();
-
-        //Set the correct animal text view to all caps, and color the animal image backgrounds
-        if ((correctAnimalID == LEFT_ANIMAL_ID && v.getId() == R.id.leftImage) || (correctAnimalID == RIGHT_ANIMAL_ID && v.getId() == R.id.rightImage)){
-            ttobj.speak("Correct!", TextToSpeech.QUEUE_FLUSH, null);
-            mp = MediaPlayer.create(this.getActivity(), R.raw.silence);
-            mp.start();
-            mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    Log.d(TAG, "Played 'correct'");
-                    //Generate new question
-                    setupAnimals(getView());
-                }
-            });
-            mp.stop();
-        }
+        sendMessage(AudioThread.STOP_STATUS, "");
 
         Log.d(TAG, "Testing: " + correctAnimalID + " vs " + LEFT_ANIMAL_ID + " or " + RIGHT_ANIMAL_ID + " " + v.getId());
+
+        //Set correct choice to all caps
         if (correctAnimalID == LEFT_ANIMAL_ID){
             leftText.setAllCaps(true);
-//            leftAnimal.setBackgroundColor(getResources().getColor(R.color.green));
-//            leftText.setBackgroundColor(getResources().getColor(R.color.green));
-//            rightAnimal.setBackgroundColor(getResources().getColor(R.color.red));
-//            rightText.setBackgroundColor(getResources().getColor(R.color.red));
         }else {
             rightText.setAllCaps(true);
-//            leftAnimal.setBackgroundColor(getResources().getColor(R.color.red));
-//            leftText.setBackgroundColor(getResources().getColor(R.color.red));
-//            rightAnimal.setBackgroundColor(getResources().getColor(R.color.green));
-//            rightText.setBackgroundColor(getResources().getColor(R.color.green));
         }
 
-        if (v.getId() == R.id.leftImage){
-            leftClickCount++;
+        //Set the correct animal text view to all caps, and color the animal image backgrounds
+        if ((correctAnimalID == LEFT_ANIMAL_ID && v.getId() == R.id.leftImage) || (correctAnimalID == RIGHT_ANIMAL_ID && v.getId() == R.id.rightImage)) {
+            sendMessage(AudioThread.SPEAK_STATUS, "Correct!");
+            sendMessage(AudioThread.PLAY_STATUS, pickedAnimals.get(correctAnimalID));
 
-            //Some Animation!
-//            Animation imageShakeAnim = (Animation) AnimationUtils.loadAnimation(getContext(), R.anim.image_shake);
-//            leftAnimal.startAnimation(imageShakeAnim);
-
-//            if (correctAnimalID == LEFT_ANIMAL_ID){
-//                //CORRECT
-//                Toast.makeText(v.getContext(), pickedAnimals.get(LEFT_ANIMAL_ID) + " is CORRECT!", Toast.LENGTH_SHORT).show();
-//            }else {
-//                Toast.makeText(v.getContext(), pickedAnimals.get(LEFT_ANIMAL_ID) + " is incorrect, TRY AGAIN?", Toast.LENGTH_SHORT).show();
-//            }
-//            leftText.setVisibility(View.VISIBLE);
-//            rightText.setVisibility(View.VISIBLE);
-            mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(LEFT_ANIMAL_ID)));
-            mp.start();
-            mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    Log.d(TAG, "Completed 1");
-                    //Generate new question
-                    setupAnimals(getView());
-                }
-            });
-
+//            setupAnimals(getView());
+        }else{
+            if (v.getId() == R.id.leftImage){
+                sendMessage(AudioThread.PLAY_STATUS, pickedAnimals.get(LEFT_ANIMAL_ID));
+            }else{
+                sendMessage(AudioThread.PLAY_STATUS, pickedAnimals.get(RIGHT_ANIMAL_ID));
+            }
         }
 
-        if (v.getId() == R.id.rightImage){
-            rightClickCount++;
+    }
 
-            //Some Animation!
-//            imageShakeAnim.setTarget(R.id.rightImage);
-//            imageShakeAnim.start();
-
-//            if (correctAnimalID == RIGHT_ANIMAL_ID){
-//                //CORRECT
-//                Toast.makeText(v.getContext(), pickedAnimals.get(RIGHT_ANIMAL_ID) + " is CORRECT!", Toast.LENGTH_SHORT).show();
-//            }else {
-//                Toast.makeText(v.getContext(), pickedAnimals.get(RIGHT_ANIMAL_ID) + " is incorrect, TRY AGAIN?", Toast.LENGTH_SHORT).show();
-//            }
-//            leftText.setVisibility(View.VISIBLE);
-//            rightText.setVisibility(View.VISIBLE);
-            mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(RIGHT_ANIMAL_ID)));
-            mp.start();
-            mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    Log.d(TAG, "Completed 2");
-                    //Generate new question
-                    setupAnimals(getView());
-                }
-            });
-        }
-
-        if ((leftClickCount + rightClickCount) >= 1){
-//            Toast.makeText(v.getContext(), "Click Count: " + leftClickCount + "/" + rightClickCount, Toast.LENGTH_SHORT).show();
-
-            //Play the correct animal sound
-//            mp = MediaPlayer.create(this.getActivity(), animalAudio.get(pickedAnimals.get(correctAnimalID)));
-//            mp.start();
-
-
-
+    public void sendMessage(int command, String data){
+        if (audioThread.handler != null) {
+            Bundle bundle = new Bundle();
+            bundle.putString("data", data);
+            Log.d(TAG, command + "  " + data);
+            Message message = new Message();
+            message.what = command;
+            message.setData(bundle);
+            audioThread.handler.sendMessage(message);
         }
     }
 
@@ -283,15 +219,15 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
         return result;
     }
 
-
     @Override
     public void onDestroy() {
-        //Close the Text to Speech Library
-        if(ttobj != null) {
-            ttobj.stop();
-            ttobj.shutdown();
-            Log.d(TAG, "Text to Speach Destroyed");
-        }
+//        audioThread.handler.getLooper().quit();
+//        //Close the Text to Speech Library
+//        if(audioThread.ttobj != null) {
+//            audioThread.ttobj.stop();
+//            audioThread.ttobj.shutdown();
+//            Log.d(TAG, "Text to Speach Destroyed");
+//        }
         super.onDestroy();
     }
 
